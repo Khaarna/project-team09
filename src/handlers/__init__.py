@@ -1,4 +1,5 @@
 from .decorators import input_error
+from .dispatcher import dispatch_command
 from .contact_handlers import (
     add_contact, change_phone, delete_contact,
     show_phone, show_contact, show_all, search_contacts,
@@ -13,6 +14,7 @@ from .note_handlers import (
 
 __all__ = [
     "input_error",
+    "dispatch_command",
     "add_contact", "change_phone", "delete_contact",
     "show_phone", "show_contact", "show_all", "search_contacts",
     "add_email", "add_address",
