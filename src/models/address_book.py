@@ -1,56 +1,53 @@
-from collections import UserDict
-from datetime import datetime, timedelta, date
-
+from datetime import date
 from .record import Record
+from .fields import Name
 
 
-class AddressBook(UserDict):
+class AddressBook:
+    def __init__(self):
+        self._records: dict[str, Record] = {}
 
-    def add_record(self, record):
-        self.data[record.name.value] = record
+    @property
+    def records(self):
+        return tuple(self._records.values())
 
-    def find(self, name):
-        return self.data.get(name)
+    def get_or_create_record(self, name: str) -> Record:
+        key = name.lower()
+        record = self._records.get(key)
+        if record is None:
+            record = Record(Name(name))
+            self._records[key] = record
+        return record
 
-    def delete(self, name):
-        pass
+    def find(self, name: str) -> Record | None:
+        return self._records.get(name.lower())
 
-    def search(self, query):
-        pass
+    def delete(self, name: str) -> None:
+        key = name.lower()
+        if key not in self._records:
+            raise KeyError(f"Contact '{name}' not found.")
+        del self._records[key]
 
-    def get_upcoming_birthdays(self, days=7):
-        today = datetime.today().date()
+    def search(self, query: str) -> list[Record]:
+        pass  # TODO: case-insensitive search across name, phones and emails
+
+    def get_upcoming_birthdays(self, days: int = 7) -> list[dict]:
+        today = date.today()
         upcoming = []
-
-        def birthday_in_year(bday, year):
-            try:
-                return bday.replace(year=year)
-            except ValueError:
-                return date(year, 3, 1)  # Feb 29 → Mar 1 in non-leap years
-
-        for record in self.data.values():
-            if record.birthday is None:
+        for record in self._records.values():
+            congratulation_date = record.get_congratulation_date()
+            if congratulation_date is None:
                 continue
-
-            birthday = datetime.strptime(record.birthday.value, "%d.%m.%Y").date()
-            upcoming_birthday = birthday_in_year(birthday, today.year)
-            if upcoming_birthday < today:
-                upcoming_birthday = birthday_in_year(birthday, today.year + 1)
-
-            days_until = (upcoming_birthday - today).days
-            if 0 <= days_until <= days:
-                if upcoming_birthday.weekday() == 5:
-                    congratulation_date = upcoming_birthday + timedelta(days=2)
-                elif upcoming_birthday.weekday() == 6:
-                    congratulation_date = upcoming_birthday + timedelta(days=1)
-                else:
-                    congratulation_date = upcoming_birthday
-
+            delta_days = (congratulation_date - today).days
+            if 0 <= delta_days <= days:
                 upcoming.append({
                     "name": record.name.value,
-                    "congratulation_date": congratulation_date.strftime("%d.%m.%Y"),
-                    "days_until": days_until,
+                    "congratulation_date": congratulation_date.strftime("%d.%m.%Y")
                 })
-
-        upcoming.sort(key=lambda x: x["days_until"])
         return upcoming
+
+    def __iter__(self):
+        return iter(self._records.values())
+
+    def __str__(self):
+        return "\n".join(str(record) for record in self)

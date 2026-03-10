@@ -1,42 +1,46 @@
-from models import AddressBook, Record
+from models import AddressBook
 from .decorators import input_error
 
 
 @input_error
 def add_contact(args, book: AddressBook):
+    if len(args) < 2:
+        return "Usage: add <name> <phone>"
     name, phone = args[0], args[1]
-    record = book.find(name)
-    if record is None:
-        record = Record(name)
-        book.add_record(record)
-        message = "Contact added."
-    else:
-        message = "Contact updated."
+    record = book.get_or_create_record(name)
     record.add_phone(phone)
-    return message
+    return "Contact updated."
 
 
 @input_error
 def change_phone(args, book: AddressBook):
+    if len(args) < 3:
+        return "Usage: change <name> <old_phone> <new_phone>"
     name, old_phone, new_phone = args[0], args[1], args[2]
     record = book.find(name)
-    if record is None:
-        raise ValueError(f"Contact '{name}' not found")
-    record.edit_phone(old_phone, new_phone)
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
+    record.change_phone(old_phone, new_phone)
     return "Phone updated."
 
 
 @input_error
 def delete_contact(args, book: AddressBook):
-    pass
+    if len(args) < 1:
+        return "Usage: delete <name>"
+    name = args[0]
+    book.delete(name)
+    return f"Contact '{name}' deleted."
 
 
 @input_error
 def show_phone(args, book: AddressBook):
+    if len(args) < 1:
+        return "Usage: phone <name>"
     name = args[0]
     record = book.find(name)
-    if record is None:
-        raise ValueError(f"Contact '{name}' not found")
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
     if not record.phones:
         return f"'{name}' has no phones."
     return f"{name}: {', '.join(p.value for p in record.phones)}"
@@ -44,62 +48,69 @@ def show_phone(args, book: AddressBook):
 
 @input_error
 def show_contact(args, book: AddressBook):
+    if len(args) < 1:
+        return "Usage: info <name>"
     name = args[0]
     record = book.find(name)
-    if record is None:
-        raise ValueError(f"Contact '{name}' not found")
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
     return str(record)
 
 
 @input_error
 def show_all(book: AddressBook):
-    if not book.data:
-        return "No contacts found."
-    separator = "\n" + "-" * 30 + "\n"
-    return separator.join(str(r) for r in book.data.values())
+    return str(book) if book._records else "No contacts found."
 
 
 @input_error
 def search_contacts(args, book: AddressBook):
-    pass
+    if len(args) < 1:
+        return "Usage: search <query>"
+    pass  # TODO
 
 
 @input_error
 def add_email(args, book: AddressBook):
-    pass
+    if len(args) < 2:
+        return "Usage: add-email <name> <email>"
+    pass  # TODO
 
 
 @input_error
 def add_address(args, book: AddressBook):
-    pass
+    if len(args) < 2:
+        return "Usage: add-address <name> <address>"
+    pass  # TODO
 
 
 @input_error
 def add_birthday(args, book: AddressBook):
+    if len(args) < 2:
+        return "Usage: add-birthday <name> <DD.MM.YYYY>"
     name, birthday = args[0], args[1]
     record = book.find(name)
-    if record is None:
-        raise ValueError(f"Contact '{name}' not found")
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
     record.add_birthday(birthday)
     return "Birthday added."
 
 
 @input_error
 def show_birthday(args, book: AddressBook):
+    if len(args) < 1:
+        return "Usage: show-birthday <name>"
     name = args[0]
     record = book.find(name)
-    if record is None:
-        raise ValueError(f"Contact '{name}' not found")
-    if record.birthday is None:
-        return f"'{name}' has no birthday set."
-    return f"{name}'s birthday: {record.birthday.value}"
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
+    return record.show_birthday()
 
 
 @input_error
 def birthdays(args, book: AddressBook):
     days = int(args[0]) if args else 7
     if days < 0:
-        raise ValueError("Number of days must be non-negative")
+        raise ValueError("Number of days must be non-negative.")
     upcoming = book.get_upcoming_birthdays(days)
     if not upcoming:
         return f"No upcoming birthdays in the next {days} days."

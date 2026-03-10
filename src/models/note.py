@@ -2,19 +2,25 @@ from .fields import Tag
 
 
 class Note:
-    def __init__(self, title, content=""):
-        self.title = title
+    def __init__(self, title: str, content: str = ""):
+        if not title or not title.strip():
+            raise ValueError("Note title cannot be empty.")
+        self.title = title.strip()
         self.content = content
-        self.tags = []
+        self._tags: list[Tag] = []
 
-    def edit(self, new_content):
-        pass
+    @property
+    def tags(self):
+        return tuple(self._tags)
 
-    def add_tag(self, tag):
-        pass
+    def edit(self, new_content: str) -> None:
+        pass  # TODO
 
-    def remove_tag(self, tag):
-        pass
+    def add_tag(self, tag) -> None:
+        pass  # TODO
+
+    def remove_tag(self, tag_value: str) -> None:
+        pass  # TODO
 
     def __str__(self):
-        pass
+        pass  # TODO
