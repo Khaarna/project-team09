@@ -14,13 +14,20 @@ class Note:
         return tuple(self._tags)
 
     def edit(self, new_content: str) -> None:
-        pass  # TODO
+        self.content = new_content
 
     def add_tag(self, tag) -> None:
-        pass  # TODO
+        tag_obj = tag if isinstance(tag, Tag) else Tag(tag)
+        if tag_obj not in self._tags:
+            self._tags.append(tag_obj)
 
     def remove_tag(self, tag_value: str) -> None:
-        pass  # TODO
+        for index, tag in enumerate(self._tags):
+            if tag.value == tag_value:
+                del self._tags[index]
+                return
+        raise ValueError("Tag not found.")
 
     def __str__(self):
-        pass  # TODO
+        tags = ", ".join(tag.value for tag in self._tags) if self._tags else "no tags"
+        return f"Title: {self.title}\nContent: {self.content}\nTags: {tags}"

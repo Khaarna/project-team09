@@ -6,28 +6,53 @@ class NotesBook:
         self._notes: dict[str, Note] = {}
 
     def add(self, title: str, content: str = "") -> Note:
-        pass  # TODO
+        note = Note(title, content)
+        self._notes[note.title.lower()] = note
+        return note
 
     def find(self, title: str) -> Note:
-        pass  # TODO
+        key = title.strip().lower()
+        note = self._notes.get(key)
+        if note is None:
+            raise KeyError(f"Note '{title}' not found.")
+        return note
 
     def delete(self, title: str) -> None:
-        pass  # TODO
+        key = title.strip().lower()
+        if key not in self._notes:
+            raise KeyError(f"Note '{title}' not found.")
+        del self._notes[key]
 
     def edit(self, title: str, new_content: str) -> None:
-        pass  # TODO
+        self.find(title).edit(new_content)
 
     def search(self, query: str) -> list[Note]:
-        pass  # TODO
+        needle = query.strip().lower()
+        if not needle:
+            return list(self._notes.values())
+        return [
+            note
+            for note in self._notes.values()
+            if needle in note.title.lower() or needle in note.content.lower()
+        ]
 
     def search_by_tag(self, tag: str) -> list[Note]:
-        pass  # TODO
+        needle = tag.strip().lower()
+        if not needle:
+            return []
+        return [
+            note
+            for note in self._notes.values()
+            if any(needle == note_tag.value.lower() for note_tag in note.tags)
+        ]
 
     def add_tag(self, title: str, tag: str) -> None:
-        pass  # TODO
+        self.find(title).add_tag(tag)
 
     def remove_tag(self, title: str, tag: str) -> None:
-        pass  # TODO
+        self.find(title).remove_tag(tag)
 
     def all(self) -> str:
-        pass  # TODO
+        if not self._notes:
+            return "No notes available."
+        return "\n\n".join(str(note) for note in self._notes.values())
