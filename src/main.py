@@ -12,7 +12,7 @@ Available commands:
   phone [name]                     Show contact's phones
   info [name]                      Show full contact info
   all                              Show all contacts
-  search [query]                   Search contacts by name, phone or email
+  search [keyword]                 Search contacts by name, phone or email
   add-email [name] [email]         Add email to contact
   add-address [name] [address...]  Add address to contact
   add-birthday [name] [DD.MM.YYYY] Add birthday

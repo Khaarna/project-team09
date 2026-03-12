@@ -29,7 +29,15 @@ class AddressBook:
         del self._records[key]
 
     def search(self, query: str) -> list[Record]:
-        pass  # TODO: case-insensitive search across name, phones and emails
+        term = query.strip().lower()
+        if not term:
+            return list(self._records.values())
+        return [
+            record for record in self._records.values()
+            if term in record.name.value.lower()
+            or any(term in p.value for p in record.phones)
+            or any(term in e.value.lower() for e in record.emails)
+        ]
 
     def get_upcoming_birthdays(self, days: int = 7) -> list[dict]:
         today = date.today()

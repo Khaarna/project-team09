@@ -61,7 +61,11 @@ class Address(Field):
 
 class Tag(Field):
     def validate(self, value):
-        # TODO
+        value = value.strip().lower()
+        if not value:
+            raise ValueError("Tag cannot be empty.")
+        if not re.match(r'^[a-z0-9_-]+$', value):
+            raise ValueError("Tag can only contain letters, digits, hyphens and underscores.")
         return value
 
 
