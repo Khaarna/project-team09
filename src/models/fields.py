@@ -5,7 +5,7 @@ from datetime import datetime, date
 class Field:
     def __init__(self, value):
         if value is None:
-            raise ValueError("Value cannot be None")
+            raise ValueError("Value cannot be None.")
         self._value = self.validate(value)
 
     def validate(self, value):
@@ -37,6 +37,7 @@ class Name(Field):
 class Phone(Field):
     def validate(self, value):
         value = value.strip()
+        
         if value.startswith("+"):
             value = value[1:]
         if not value.isdigit() or len(value) != 10:
@@ -48,14 +49,25 @@ class Phone(Field):
 
 
 class Email(Field):
-    def validate(self, value):
-        # TODO
-        return value
 
+    EMAIL_PATTERN = re.compile(r"^[^@\s]+@([\w-]+\.)+[A-Za-z]{2,}$")
+
+    def validate(self, value):
+        value = value.strip()
+    
+        if not self.EMAIL_PATTERN.fullmatch(value):
+            raise ValueError("Invalid email format")
+
+        return value
+        
 
 class Address(Field):
     def validate(self, value):
-        # TODO
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Address cannot be empty.")
+
         return value
 
 
