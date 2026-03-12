@@ -7,7 +7,10 @@ class NotesBook:
 
     def add(self, title: str, content: str = "") -> Note:
         note = Note(title, content)
-        self._notes[note.title.lower()] = note
+        key = note.title.lower()
+        if key in self._notes:
+            raise ValueError(f"Note '{title}' already exists.")
+        self._notes[key] = note
         return note
 
     def find(self, title: str) -> Note:
