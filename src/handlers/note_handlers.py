@@ -91,3 +91,12 @@ def search_by_tag(args, notes: NotesBook):
     if not found_notes:
         return f"No notes found with tag '{tag}'."
     return "\n\n".join(str(note) for note in found_notes)
+
+
+@note_command("sort-by-tag")
+@input_error
+def sort_by_tag(args, notes: NotesBook):
+    sorted_notes = notes.sort_by_tag()
+    if not sorted_notes:
+        return "No notes available."
+    return "\n\n".join(str(note) for note in sorted_notes)

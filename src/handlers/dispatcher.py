@@ -20,9 +20,9 @@ def note_command(name: str):
     return decorator
 
 
-def dispatch_command(command: str, args: list[str], book, notes) -> str:
+def dispatch_command(command: str, args: list[str], ctx) -> str:
     if command in CONTACT_COMMANDS:
-        return CONTACT_COMMANDS[command](args, book)
+        return CONTACT_COMMANDS[command](args, ctx.book)
     if command in NOTE_COMMANDS:
-        return NOTE_COMMANDS[command](args, notes)
+        return NOTE_COMMANDS[command](args, ctx.notes)
     return f"Unknown command '{command}'. Type 'help' to see available commands."

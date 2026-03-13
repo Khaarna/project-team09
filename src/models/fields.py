@@ -26,6 +26,11 @@ class Field:
     def __hash__(self):
         return hash(self._value)
 
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        """Normalize raw input to canonical key form, without validation."""
+        return value.strip()
+
 
 class Name(Field):
     def validate(self, value):
@@ -35,10 +40,15 @@ class Name(Field):
 
 
 class Phone(Field):
-    def validate(self, value):
+    @classmethod
+    def normalize(cls, value: str) -> str:
         value = value.strip()
         if value.startswith("+"):
             value = value[1:]
+        return value
+
+    def validate(self, value):
+        value = self.normalize(value)
         if not value.isdigit() or len(value) != 10:
             raise ValueError("Phone must contain exactly 10 digits.")
         return value
@@ -51,7 +61,7 @@ class Email(Field):
     _PATTERN = re.compile(r"^[^@\s]+@([\w-]+\.)+[A-Za-z]{2,}$")
 
     def validate(self, value):
-        value = value.strip()
+        value = self.normalize(value)
         if not self._PATTERN.fullmatch(value):
             raise ValueError("Invalid email format. Expected: user@example.com")
         return value
@@ -59,15 +69,19 @@ class Email(Field):
 
 class Address(Field):
     def validate(self, value):
-        value = value.strip()
+        value = self.normalize(value)
         if not (5 <= len(value) <= 200):
             raise ValueError("Address must be between 5 and 200 characters.")
         return value
 
 
 class Tag(Field):
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return value.strip().lower()
+
     def validate(self, value):
-        value = value.strip().lower()
+        value = self.normalize(value)
         if not value:
             raise ValueError("Tag cannot be empty.")
         if not re.match(r'^[a-z0-9_-]+$', value):
@@ -100,41 +114,3 @@ class Birthday(Field):
 
     def __str__(self):
         return self.value.strftime("%d.%m.%Y")
-
-
-class CRUDMixin:
-    """Mixin providing generic CRUD operations for value object collections."""
-
-    def _make_item(self, cls, value):
-        """Create a value object instance and return (key, item) tuple."""
-        item = cls(value) if not isinstance(value, cls) else value
-        return item.value, item
-
-    def _add_item(self, collection: dict, cls, value):
-        """Add a new item to the collection."""
-        key, item = self._make_item(cls, value)
-
-        if key in collection:
-            raise ValueError(f"{cls.__name__} already exists.")
-
-        collection[key] = item
-        return item
-
-    def _find_item(self, collection: dict, cls, value):
-        """Find an item in the collection."""
-        key = cls(value).value if not isinstance(value, cls) else value.value
-        return collection.get(key)
-
-    def _remove_item(self, collection: dict, cls, value):
-        """Remove an item from the collection."""
-        key = cls(value).value if not isinstance(value, cls) else value.value
-
-        if key not in collection:
-            raise ValueError(f"{cls.__name__} not found.")
-
-        del collection[key]
-
-    def _change_item(self, collection: dict, cls, old_value, new_value):
-        """Change an existing item in the collection."""
-        self._remove_item(collection, cls, old_value)
-        return self._add_item(collection, cls, new_value)
