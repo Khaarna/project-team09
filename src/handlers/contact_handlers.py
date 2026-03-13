@@ -131,3 +131,113 @@ def birthdays(args, book: AddressBook):
     for item in upcoming:
         lines.append(f"  {item['name']}: {item['congratulation_date']}")
     return "\n".join(lines)
+
+
+    ##################################################################
+    #Команда show_all як ГЕНЕРАТОР: архітектура query-pipeline  
+    # економія пам'яті, можлива фільтрація, пагінація, сортування.
+    # Для кожного фільтра може бути своя команда:
+    # show-all-contacts, show-by-tag <tag>, show-upcoming <days>
+
+# Pipeline Layer for show-all command - mini-query engine
+
+from itertools import islice
+from datetime import date, timedelta
+
+def contacts(book):
+    yield from book
+
+#filters:
+
+FILTERS = {
+    "name": filter_name,
+    "tag": filter_tag,
+    "upcoming": filter_upcoming,
+}
+
+def filter_field(records, field, text):
+    text = text.lower()
+
+    for r in records:
+
+        items = getattr(r, f"_{field}", None)
+
+        if not items:
+            continue
+
+        if any(text in i.value.lower() for i in items.values()):
+            yield r
+
+def format_contacts(records):
+
+    for r in records:
+
+        parts = [r.name.value]
+
+        parts.extend(
+            f"{field}: {', '.join(i.value for i in getattr(r, f'_{field}').values())}"
+            for field in Record.COLLECTIONS
+            if getattr(r, f"_{field}")
+        )
+
+        if r.birthday:
+            parts.append(f"Birthday: {r.birthday}")
+
+        yield "; ".join(parts)
+
+def paginate(lines, size=5):
+
+    it = iter(lines)
+
+    while page := list(islice(it, size)):
+        yield "\n".join(page)
+
+def query_contacts(book, filters=None, page=5):
+    records = contacts(book)
+
+    if filters:
+
+        for func, value in filters:
+
+            if isinstance(value, tuple):
+                records = func(records, *value)
+            else:
+                records = func(records, value)
+
+    lines = format_contacts(records)
+
+    return "\n\n".join(paginate(lines, page))
+    
+# Commands    
+from queries import (
+    query_contacts,
+    filter_name,
+    filter_tag,
+    filter_upcoming,
+)
+
+
+FILTERS = {
+    "name": filter_name,
+    "tag": filter_tag,
+    "upcoming": filter_upcoming,
+}
+
+@command("show-all-contacts")
+@input_error
+def show_all(args, book):
+
+    filters = []
+
+    for arg in args:
+
+        if "=" not in arg:
+            continue
+
+        key, value = arg.split("=", 1)
+        func = FILTERS.get(key)
+
+        if func:
+            filters.append((func, value))
+
+    return query_contacts(book, filters)
