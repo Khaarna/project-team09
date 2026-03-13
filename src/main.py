@@ -13,8 +13,27 @@ Available commands:
   info [name]                      Show full contact info
   all                              Show all contacts
   search [keyword]                 Search contacts by name, phone or email
+  
+  PHONES
+  -----------------------
+  add-phone [name] [phone]         Add phone to contact
+  change-phone [name] [old] [new]  Change phone number
+  remove-phone [name] [phone]      Remove phone from contact
+  show-phones [name]               Show all phones
+  
+  EMAILS
+  -----------------------
   add-email [name] [email]         Add email to contact
-  add-address [name] [address...]  Add address to contact
+  change-email [name] [old] [new]  Change email address
+  remove-email [name] [email]      Remove email from contact
+  show-emails [name]               Show all emails
+  
+  BIRTHDAY & ADDRESS
+  ------------------
+  add-address [name] [address...]  Add/update address
+  change-address [name] [addr...]  Change address
+  remove-address [name]            Remove address
+  show-address [name]              Show address
   add-birthday [name] [DD.MM.YYYY] Add birthday
   show-birthday [name]             Show birthday
   birthdays [days]                 Show upcoming birthdays (default: 7 days)
