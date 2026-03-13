@@ -73,8 +73,11 @@ def show_all(args, book: AddressBook):
 @input_error
 def search_contacts(args, book: AddressBook):
     if len(args) < 1:
-        return "Usage: search <query>"
-    pass  # TODO
+        return "Usage: search <keyword>"
+    results = book.search(args[0])
+    if not results:
+        return "No contacts found."
+    return "\n".join(str(r) for r in results)
 
 
 @contact_command("add-email")
