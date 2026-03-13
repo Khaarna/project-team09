@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "contact-book-assistant"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = ["rich>=13.0"]
+
+[project.scripts]
+contact-book = "contact_book.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["contact_book"]

@@ -1,6 +1,7 @@
-from models import NotesBook
+from ..models import NotesBook
 from .decorators import input_error
 from .dispatcher import note_command
+from .. import ui
 
 
 @note_command("add-note")
@@ -19,7 +20,7 @@ def add_note(args, notes: NotesBook):
 def show_note(args, notes: NotesBook):
     if len(args) < 1:
         return "Usage: note <title>"
-    return str(notes.find(args[0]))
+    ui.show_note(notes.find(args[0]))
 
 
 @note_command("edit-note")
@@ -46,7 +47,7 @@ def delete_note(args, notes: NotesBook):
 @note_command("notes")
 @input_error
 def show_all_notes(args, notes: NotesBook):
-    return notes.all()
+    ui.show_notes(notes)
 
 
 @note_command("search-notes")
@@ -54,11 +55,7 @@ def show_all_notes(args, notes: NotesBook):
 def search_notes(args, notes: NotesBook):
     if len(args) < 1:
         return "Usage: search-notes <query>"
-    query = " ".join(args)
-    found_notes = notes.search(query)
-    if not found_notes:
-        return f"No notes found for '{query}'."
-    return "\n\n".join(str(note) for note in found_notes)
+    ui.show_notes(notes.search(" ".join(args)))
 
 
 @note_command("add-tag")
@@ -86,17 +83,10 @@ def remove_tag(args, notes: NotesBook):
 def search_by_tag(args, notes: NotesBook):
     if len(args) < 1:
         return "Usage: search-tag <tag>"
-    tag = args[0]
-    found_notes = notes.search_by_tag(tag)
-    if not found_notes:
-        return f"No notes found with tag '{tag}'."
-    return "\n\n".join(str(note) for note in found_notes)
+    ui.show_notes(notes.search_by_tag(args[0]))
 
 
 @note_command("sort-by-tag")
 @input_error
 def sort_by_tag(args, notes: NotesBook):
-    sorted_notes = notes.sort_by_tag()
-    if not sorted_notes:
-        return "No notes available."
-    return "\n\n".join(str(note) for note in sorted_notes)
+    ui.show_notes(notes.sort_by_tag())
