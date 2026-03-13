@@ -6,25 +6,11 @@ from .dispatcher import contact_command
 @contact_command("add")
 @input_error
 def add_contact(args, book: AddressBook):
-    if len(args) < 2:
-        return "Usage: add <name> <phone>"
-    name, phone = args[0], args[1]
-    record = book.get_or_create_record(name)
-    record.add("phones", phone)
-    return "Contact updated."
-
-
-@contact_command("change")
-@input_error
-def change_phone(args, book: AddressBook):
-    if len(args) < 3:
-        return "Usage: change <name> <old_phone> <new_phone>"
-    name, old_phone, new_phone = args[0], args[1], args[2]
-    record = book.find(name)
-    if not record:
-        raise ValueError(f"Contact '{name}' not found.")
-    record.change("phones", old_phone, new_phone)
-    return "Phone updated."
+    if len(args) < 1:
+        return "Usage: add <name>"
+    name = args[0]
+    book.get_or_create_record(name)
+    return "Contact added."
 
 
 @contact_command("delete")
@@ -35,20 +21,6 @@ def delete_contact(args, book: AddressBook):
     name = args[0]
     book.delete(name)
     return f"Contact '{name}' deleted."
-
-
-@contact_command("phone")
-@input_error
-def show_phone(args, book: AddressBook):
-    if len(args) < 1:
-        return "Usage: phone <name>"
-    name = args[0]
-    record = book.find(name)
-    if not record:
-        raise ValueError(f"Contact '{name}' not found.")
-    if not record.phones:
-        return f"'{name}' has no phones."
-    return f"{name}: {', '.join(p.value for p in record.phones)}"
 
 
 @contact_command("info")
@@ -78,14 +50,6 @@ def search_contacts(args, book: AddressBook):
     if not results:
         return "No contacts found."
     return "\n".join(str(r) for r in results)
-
-
-@contact_command("add-address")
-@input_error
-def add_address(args, book: AddressBook):
-    if len(args) < 2:
-        return "Usage: add-address <name> <address>"
-    pass  # TODO
 
 
 @contact_command("add-birthday")
@@ -129,7 +93,7 @@ def birthdays(args, book: AddressBook):
 
 
 # ============================================================================
-# DYNAMIC COMMAND REGISTRATION (Phase 2)
+# DYNAMIC COMMAND REGISTRATION
 # ============================================================================
 
 def _get_record_or_fail(book: AddressBook, name: str):
@@ -153,8 +117,10 @@ def register_collection_commands():
     """
     from models import Record
     
+    _SINGULAR = {"phones": "phone", "emails": "email", "addresses": "address"}
+
     for field in Record.COLLECTIONS:
-        entity = field[:-1]  # "phones" -> "phone", "emails" -> "email"
+        entity = _SINGULAR.get(field, field[:-1])
         
         # --- Generate ADD command ---
         def make_add(field, entity):
@@ -163,7 +129,8 @@ def register_collection_commands():
             def add_item(args, book):
                 if len(args) < 2:
                     return f"Usage: add-{entity} <name> <{entity}>"
-                name, value = args[0], args[1]
+                name = args[0]
+                value = " ".join(args[1:])
                 record = book.get_or_create_record(name)
                 record.add(field, value)
                 return f"{entity.capitalize()} added."
@@ -175,9 +142,18 @@ def register_collection_commands():
             @input_error
             def change_item(args, book):
                 if len(args) < 3:
-                    return f"Usage: change-{entity} <name> <old_{entity}> <new_{entity}>"
-                name, old_value, new_value = args[0], args[1], args[2]
+                    return f"Usage: change-{entity} <name> <#> <new_{entity}>"
+                name = args[0]
                 record = _get_record_or_fail(book, name)
+                items = getattr(record, field)
+                try:
+                    idx = int(args[1]) - 1
+                except ValueError:
+                    return f"Usage: change-{entity} <name> <#> <new_{entity}>"
+                if not (0 <= idx < len(items)):
+                    return f"Index out of range. Use 1-{len(items)}." if items else f"No {field} to change."
+                old_value = items[idx].value
+                new_value = " ".join(args[2:])
                 record.change(field, old_value, new_value)
                 return f"{entity.capitalize()} updated."
             return change_item
@@ -188,10 +164,18 @@ def register_collection_commands():
             @input_error
             def remove_item(args, book):
                 if len(args) < 2:
-                    return f"Usage: remove-{entity} <name> <{entity}>"
-                name, value = args[0], args[1]
+                    return f"Usage: remove-{entity} <name> <#>"
+                name = args[0]
                 record = _get_record_or_fail(book, name)
-                record.remove(field, value)
+                items = getattr(record, field)
+                try:
+                    idx = int(args[1]) - 1
+                except ValueError:
+                    return f"Usage: remove-{entity} <name> <#>"
+                if not (0 <= idx < len(items)):
+                    return f"Index out of range. Use 1-{len(items)}." if items else f"No {field} to remove."
+                old_value = items[idx].value
+                record.remove(field, old_value)
                 return f"{entity.capitalize()} removed."
             return remove_item
         
@@ -207,7 +191,7 @@ def register_collection_commands():
                 items = getattr(record, field)
                 if not items:
                     return f"No {field}."
-                return ", ".join(i.value for i in items)
+                return "\n".join(f"  {i + 1}. {item.value}" for i, item in enumerate(items))
             return show_items
         
         # Register all commands for this field

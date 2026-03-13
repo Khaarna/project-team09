@@ -6,34 +6,35 @@ Available commands:
 
   CONTACTS
   --------
-  add [name] [phone]               Add contact or new phone to existing contact
-  change [name] [old] [new]        Change phone number
+  add [name]                       Add a new contact
   delete [name]                    Delete contact
-  phone [name]                     Show contact's phones
   info [name]                      Show full contact info
   all                              Show all contacts
-  search [keyword]                 Search contacts by name, phone or email
+  search [keyword]                 Search contacts by name, phone, email or address
   
   PHONES
   -----------------------
   add-phone [name] [phone]         Add phone to contact
-  change-phone [name] [old] [new]  Change phone number
-  remove-phone [name] [phone]      Remove phone from contact
-  show-phones [name]               Show all phones
+  change-phone [name] [#] [new]    Change phone by index
+  remove-phone [name] [#]          Remove phone by index
+  show-phones [name]               Show all phones (numbered)
   
   EMAILS
   -----------------------
   add-email [name] [email]         Add email to contact
-  change-email [name] [old] [new]  Change email address
-  remove-email [name] [email]      Remove email from contact
-  show-emails [name]               Show all emails
+  change-email [name] [#] [new]    Change email by index
+  remove-email [name] [#]          Remove email by index
+  show-emails [name]               Show all emails (numbered)
   
-  BIRTHDAY & ADDRESS
-  ------------------
-  add-address [name] [address...]  Add/update address
-  change-address [name] [addr...]  Change address
-  remove-address [name]            Remove address
-  show-address [name]              Show address
+  ADDRESSES
+  ---------
+  add-address [name] [addr...]     Add address to contact
+  change-address [name] [#] [addr...] Change address by index
+  remove-address [name] [#]        Remove address by index
+  show-addresses [name]            Show all addresses (numbered)
+
+  BIRTHDAY
+  --------
   add-birthday [name] [DD.MM.YYYY] Add birthday
   show-birthday [name]             Show birthday
   birthdays [days]                 Show upcoming birthdays (default: 7 days)
