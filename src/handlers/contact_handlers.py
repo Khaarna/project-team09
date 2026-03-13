@@ -10,7 +10,7 @@ def add_contact(args, book: AddressBook):
         return "Usage: add <name> <phone>"
     name, phone = args[0], args[1]
     record = book.get_or_create_record(name)
-    record.add_phone(phone)
+    record.add("phones", phone)
     return "Contact updated."
 
 
@@ -23,7 +23,7 @@ def change_phone(args, book: AddressBook):
     record = book.find(name)
     if not record:
         raise ValueError(f"Contact '{name}' not found.")
-    record.change_phone(old_phone, new_phone)
+    record.change("phones", old_phone, new_phone)
     return "Phone updated."
 
 
@@ -80,14 +80,6 @@ def search_contacts(args, book: AddressBook):
     return "\n".join(str(r) for r in results)
 
 
-@contact_command("add-email")
-@input_error
-def add_email(args, book: AddressBook):
-    if len(args) < 2:
-        return "Usage: add-email <name> <email>"
-    pass  # TODO
-
-
 @contact_command("add-address")
 @input_error
 def add_address(args, book: AddressBook):
@@ -134,3 +126,96 @@ def birthdays(args, book: AddressBook):
     for item in upcoming:
         lines.append(f"  {item['name']}: {item['congratulation_date']}")
     return "\n".join(lines)
+
+
+# ============================================================================
+# DYNAMIC COMMAND REGISTRATION (Phase 2)
+# ============================================================================
+
+def _get_record_or_fail(book: AddressBook, name: str):
+    """Helper to get a record or raise an error."""
+    record = book.find(name)
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
+    return record
+
+
+def register_collection_commands():
+    """
+    Dynamically generate and register CRUD commands for all fields 
+    in Record.COLLECTIONS.
+    
+    For each field (e.g., "phones", "emails"), generates:
+    - add-{entity}: Add item to collection
+    - change-{entity}: Change item in collection  
+    - remove-{entity}: Remove item from collection
+    - show-{entity}: Display all items in collection
+    """
+    from models import Record
+    
+    for field in Record.COLLECTIONS:
+        entity = field[:-1]  # "phones" -> "phone", "emails" -> "email"
+        
+        # --- Generate ADD command ---
+        def make_add(field, entity):
+            @contact_command(f"add-{entity}")
+            @input_error
+            def add_item(args, book):
+                if len(args) < 2:
+                    return f"Usage: add-{entity} <name> <{entity}>"
+                name, value = args[0], args[1]
+                record = book.get_or_create_record(name)
+                record.add(field, value)
+                return f"{entity.capitalize()} added."
+            return add_item
+        
+        # --- Generate CHANGE command ---
+        def make_change(field, entity):
+            @contact_command(f"change-{entity}")
+            @input_error
+            def change_item(args, book):
+                if len(args) < 3:
+                    return f"Usage: change-{entity} <name> <old_{entity}> <new_{entity}>"
+                name, old_value, new_value = args[0], args[1], args[2]
+                record = _get_record_or_fail(book, name)
+                record.change(field, old_value, new_value)
+                return f"{entity.capitalize()} updated."
+            return change_item
+        
+        # --- Generate REMOVE command ---
+        def make_remove(field, entity):
+            @contact_command(f"remove-{entity}")
+            @input_error
+            def remove_item(args, book):
+                if len(args) < 2:
+                    return f"Usage: remove-{entity} <name> <{entity}>"
+                name, value = args[0], args[1]
+                record = _get_record_or_fail(book, name)
+                record.remove(field, value)
+                return f"{entity.capitalize()} removed."
+            return remove_item
+        
+        # --- Generate SHOW command ---
+        def make_show(field, entity):
+            @contact_command(f"show-{field}")
+            @input_error
+            def show_items(args, book):
+                if len(args) < 1:
+                    return f"Usage: show-{field} <name>"
+                name = args[0]
+                record = _get_record_or_fail(book, name)
+                items = getattr(record, field)
+                if not items:
+                    return f"No {field}."
+                return ", ".join(i.value for i in items)
+            return show_items
+        
+        # Register all commands for this field
+        make_add(field, entity)
+        make_change(field, entity)
+        make_remove(field, entity)
+        make_show(field, entity)
+
+
+# Auto-register collection commands on module import
+register_collection_commands()
