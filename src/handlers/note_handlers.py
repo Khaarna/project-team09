@@ -112,9 +112,93 @@ class Birthday(Field): #value onject
 class Tag(Field):
    
     def validate(self, value: str) -> str:
+        if not value:
+            raise ValueError("Tag cannot be empty")
         return value.lower().strip()  
 
-class Note:
+class CRUDMixin:
+
+    def _add_item(self, collection, cls, value):
+
+        item = cls(value)
+
+        if isinstance(collection, list):
+
+            if item in collection:
+                raise ValueError(f"{cls.__name__} already exists.")
+
+            collection.append(item)
+            return item
+
+        if isinstance(collection, dict):
+
+            if item.value in collection:
+                raise ValueError(f"{cls.__name__} already exists.")
+
+            collection[item.value] = item
+            return item
+
+    def _find_item(self, collection, cls, value):
+
+        if isinstance(collection, list):
+
+            for item in collection:
+                if item.value == value:
+                    return item
+            return None
+
+        if isinstance(collection, dict):
+
+            key = cls(value).value
+            return collection.get(key)
+
+    def _remove_item(self, collection, cls, value):
+
+        if isinstance(collection, list):
+
+            item = self._find_item(collection, cls, value)
+
+            if not item:
+                raise ValueError(f"{cls.__name__} not found.")
+
+            collection.remove(item)
+            return
+
+        if isinstance(collection, dict):
+
+            key = cls(value).value
+
+            if key not in collection:
+                raise ValueError(f"{cls.__name__} not found.")
+
+            del collection[key]   
+
+    def _change_item(self, collection, cls, old_value, new_value):
+
+        if isinstance(collection, list):
+
+            item = self._find_item(collection, cls, old_value)
+
+            if not item:
+                raise ValueError(f"{cls.__name__} not found.")
+
+            collection.remove(item)
+            self._add_item(collection, cls, new_value)
+            return
+
+        if isinstance(collection, dict):
+
+            old_key = cls(old_value).value
+
+            if old_key not in collection:
+                raise ValueError(f"{cls.__name__} not found.")
+
+            new_item = cls(new_value)
+
+            del collection[old_key]
+            collection[new_item.value] = new_item     
+
+class Note(CRUDMixin):
 
     def __init__(self, text: str):
         text = text.strip()
@@ -125,56 +209,34 @@ class Note:
         self.text = text
         self._tags: dict[str, Tag] = {}
        
-    def add_tag(self, value: str) -> Tag:
-        tag = Tag(value)
-
-        if tag.value in self._tags:
-            raise ValueError("Tag already exists.")
-
-        self._tags[tag.value] = tag
-        return tag
-
     @property
     def tags(self):
         return tuple(self._tags.values())
 
+    def add_tag(self, value: str):
+        self._add_item(self._tags, tag.value, tag)
+        return tag
+
     def change_tag(self, old_value: str, new_value: str):
-
-        old_key = Tag(old_value).value
-
-        if old_key not in self._tags:
-            raise ValueError("Tag not found.")
-
-        new_tag = Tag(new_value)
-
-        del self._tags[old_key]
-        self._tags[new_tag.value] = new_tag
+        self._change_item(self._tags, Tag(value), old_value, new_value)
 
     def remove_tag(self, value: str):
-        key = Tag(value).value
-
-        if key not in self._tags:
-            raise ValueError("Tag not found.")
-
-        del self._tags[key]
+        self._remove_item(self._tags, Tag(value).value)
 
     def find_tag(self, value: str):
-        key = Tag(value).value
-
-        return self._tags.get(key)
+        return self._find_item(self._tags, Tag(value).value)
 
     def __str__(self):
-
         if not self._tags:
             return self.text
-
-        tags = ", ".join(tag.value for tag in self._tags.values())
-
-        return f"{self.text} [{tags}]"
-
+        return f"{self.text} [{', '.join(tag.value for tag in self._tags.values())}]"
+    
+    def has_tag(self, value: str):
+        return Tag(value).value in self._tags    
+    
 # Aggregate Root:
    
-class Record: # entity for Name and Phone storage; phone numbers add/delete
+class Record(CRUDMixin): # entity for Name and Phone storage; phone numbers add/delete
     def __init__(self, name: Name):
         if not isinstance(name, Name):
             raise TypeError("Expected Name instance.")
@@ -211,34 +273,9 @@ class Record: # entity for Name and Phone storage; phone numbers add/delete
         return {tag.name for note in self.notes for tag in note.tags}
 
     # common CRUD for value onjects:
-
-    def _add_item(self, collection: list, cls, value):
-        item = cls(value)
-        if item in collection:
-            raise ValueError(f"{cls.__name__} already exists")
-        collection.append(item)
-
-    def _find_item(self, collection: list, value):
-        for item in collection:
-            if item.value == value:
-                return item
-        raise ValueError(f"Item not found")
-
-    def _change_item(self, collection: list, old_value, new_value):
-        item = self._find_item(collection, old_value)
-        cls = type(item)
-        index = collection.index(item)
-        collection[index] = cls(new_value)
-
-    def _remove_item(self, collection: list, value):
-        item = self._find_item(collection, value)
-        collection.remove(item)
-
-    def _get_collection(self, name: str):
-        if name not in self.COLLECTIONS:
-            raise ValueError(f"Unknown collection '{name}'")
-
-        return getattr(self, f"_{name}")   
+    
+    def _get_collection(self, field):
+        return getattr(self, f"_{field}")
 
     def _set_birthday(self, birthday: Birthday | None, *, allow_override: bool = False):
         
@@ -256,24 +293,27 @@ class Record: # entity for Name and Phone storage; phone numbers add/delete
         collection = self._get_collection(field)
         cls = self.COLLECTIONS[field]
 
-        self._add_item(collection, cls, value)
+        return self._add_item(collection, cls, value)
 
     def find(self, field: str, value): 
         collection = self._get_collection(field)
+        cls = self.COLLECTIONS[field]
 
-        return self._find_item(collection, value)
+        return self._find_item(collection, cls, value)
 
 
     def change(self, field: str, old_value, new_value):
         collection = self._get_collection(field)
+        cls = self.COLLECTIONS[field]
 
-        self._change_item(collection, old_value, new_value)
+        self._change_item(collection, cls, old_value, new_value)
 
 
     def remove(self, field: str, value):
         collection = self._get_collection(field)
+        cls = self.COLLECTIONS[field]
 
-        self._remove_item(collection, value)
+        self._remove_item(collection, cls, value)
 
  # Auxiliary Business Logic for Birthdays
 
@@ -305,9 +345,10 @@ class Record: # entity for Name and Phone storage; phone numbers add/delete
 
  # Aggregate Collection/Repository            
                 
-class AddressBook:
+class AddressBook(CRUDMixin):
     def __init__(self):
         self._records: dict[str, Record] = {}
+        self._tag_index: dict[str, list[tuple[Record, Note]]] = {}
 
     @property
     def records(self):
@@ -351,6 +392,22 @@ class AddressBook:
                 })
 
         return upcoming
+
+    # tag index:
+     def index_tag(self, record: Record, note: Note):
+        for tag in note.tags:
+            self._tag_index.setdefault(tag.value, []).append((record, note))
+
+    def remove_tag_index(self, record: Record, note: Note, tag: str):
+        if tag in self._tag_index:
+            self._tag_index[tag] = [
+                (r, n) for r, n in self._tag_index[tag] if n is not note or r is not record
+            ]
+            if not self._tag_index[tag]:
+                del self._tag_index[tag]
+
+    def search_by_tag(self, tag: str):
+        return self._tag_index.get(tag, [])
 
     def __iter__(self):
         return iter(self._records.values())
@@ -464,7 +521,6 @@ def register_birthday_commands():
 
         return "Birthday added."
 
-
     @command("change-birthday")
     @input_error
     def change_birthday(args, book):
@@ -474,7 +530,6 @@ def register_birthday_commands():
         record._set_birthday(Birthday(value), allow_override=True)
 
         return "Birthday updated."
-
 
     @command("remove-birthday")
     @input_error
@@ -549,6 +604,7 @@ register_birthday_commands()
 register_note_tag_commands()
 
 for field in Record.COLLECTIONS:
+    entity = field[:-1]  # phones -> phone
     register_collection_commands(field)
 
 # Парсер: команда (на першому місці) + аргумент(и) (для деяких команд відсутній)
