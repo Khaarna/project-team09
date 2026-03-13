@@ -1,6 +1,6 @@
 # Contact Book Assistant
 
-A CLI application for managing contacts and notes, built with Python.
+A CLI application for managing contacts and notes, built with Python and [rich](https://github.com/Textualize/rich).
 
 ## Features
 
@@ -8,16 +8,44 @@ A CLI application for managing contacts and notes, built with Python.
 - **Notes** — create and manage text notes with tags
 - **Upcoming birthdays** — list contacts with birthdays in the next N days
 - **Persistent storage** — data is saved automatically after every command with SHA-256 integrity check
+- **Rich terminal UI** — tables, panels and colour-coded output via the `rich` library
 
 ## Requirements
 
 - Python 3.10+
 
-## Running
+## Installation
+
+Create and activate a virtual environment (recommended):
 
 ```bash
-cd src
-py main.py
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+```
+
+Install the package:
+
+```bash
+pip install .
+```
+
+This installs all dependencies (`rich`) and registers the `contact-book` command.
+
+## Running
+
+After installation:
+
+```bash
+contact-book
+```
+
+Or without installing, from the project root:
+
+```bash
+python -m contact_book
 ```
 
 ## Commands
@@ -120,13 +148,13 @@ Field
 
 ### CRUDMixin (`record.py`)
 
-Generic dict-based CRUD operations defined in `record.py` and inherited by `Record` for all multi-value collections. Uses the field's `.value` as the dict key, giving O(1) lookups and automatic duplicate prevention. Key lookups use `cls.normalize(value)` — no throwaway object construction.
+Generic dict-based CRUD operations defined in `record.py` and inherited by `Record` for all multi-value collections. Uses the field's `.value` as the dict key, giving O(1) lookups and automatic duplicate prevention. Each `Field` subclass provides a `normalize()` classmethod used to canonicalize keys before lookup.
 
 ```python
 class CRUDMixin:
     def _add_item(collection, cls, value): ...
-    def _find_item(collection, cls, value): ...  # uses cls.normalize()
-    def _remove_item(collection, cls, value): ... # uses cls.normalize()
+    def _find_item(collection, cls, value): ...
+    def _remove_item(collection, cls, value): ...
     def _change_item(collection, cls, old, new): ...
 ```
 
@@ -159,7 +187,16 @@ Rather than writing handlers for each field by hand, `register_collection_comman
 
 Change and remove commands accept a **1-based index** instead of requiring the user to retype the existing value. The handler resolves the index to the actual stored value before calling the model.
 
-Each `Field` subclass also exposes a `normalize(value)` classmethod that converts raw input to its canonical key form without running full validation — used by `CRUDMixin` for O(1) lookups without constructing throwaway objects.
+### UI (`ui.py`)
+
+All terminal output goes through `ui.py`, which uses `rich` for visual rendering:
+
+- Contacts are displayed in a **Table** (for `all`/`search`) or a **Panel** (for `info`)
+- Notes are displayed as individual **Panels** with `#tag` highlighting
+- Success messages are green, errors are bold red, usage hints are yellow
+- The `help` command renders a structured table grouped by section
+
+Handlers call `ui.show_contact()` / `ui.show_notes()` etc. directly and return `None`; plain-string-returning handlers are rendered by `ui.print_result()` from the main loop.
 
 ### Command Dispatcher (`dispatcher.py`)
 
@@ -179,17 +216,19 @@ Data is pickled to `data/` with a SHA-256 hash stored alongside. On load the has
 ## Project Structure
 
 ```
-src/
-├── main.py               # Entry point, CLI loop, help text
+contact_book/
+├── __init__.py
+├── __main__.py           # Entry point (python -m contact_book / contact-book)
 ├── storage.py            # AppContext: pickle persistence + SHA-256 integrity
+├── ui.py                 # Rich-based terminal rendering
 ├── models/
-│   ├── fields.py         # Value objects (Field subclasses + normalize())
+│   ├── fields.py         # Value objects (Field subclasses)
 │   ├── record.py         # CRUDMixin + Record aggregate root
 │   ├── address_book.py   # AddressBook collection + search
 │   ├── note.py           # Note entity
 │   └── notes_book.py     # NotesBook collection + sort_by_tag
 └── handlers/
-    ├── dispatcher.py     # Command registries and dispatch (AppContext-aware)
+    ├── dispatcher.py     # Command registries and dispatch
     ├── decorators.py     # @input_error decorator
     ├── contact_handlers.py  # Contact commands + dynamic registration
     └── note_handlers.py     # Note commands

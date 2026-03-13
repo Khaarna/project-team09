@@ -6,7 +6,7 @@ def input_error(func):
         except KeyError as e:
             return f"Error: {e.args[0]}"
         except ValueError as e:
-            return str(e)
+            return f"Error: {e}"
         except IndexError:
             return "Error: Invalid command format. Missing arguments."
     return inner

@@ -65,3 +65,6 @@ class NotesBook:
         if not self._notes:
             return "No notes available."
         return "\n\n".join(str(note) for note in self._notes.values())
+
+    def __iter__(self):
+        return iter(self._notes.values())

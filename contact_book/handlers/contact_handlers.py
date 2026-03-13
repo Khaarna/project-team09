@@ -1,6 +1,7 @@
-from models import AddressBook
+from ..models import AddressBook
 from .decorators import input_error
 from .dispatcher import contact_command
+from .. import ui
 
 
 @contact_command("add")
@@ -32,13 +33,13 @@ def show_contact(args, book: AddressBook):
     record = book.find(name)
     if not record:
         raise ValueError(f"Contact '{name}' not found.")
-    return str(record)
+    ui.show_contact(record)
 
 
 @contact_command("all")
 @input_error
 def show_all(args, book: AddressBook):
-    return str(book) if book._records else "No contacts found."
+    ui.show_contacts_table(list(book))
 
 
 @contact_command("search")
@@ -46,10 +47,7 @@ def show_all(args, book: AddressBook):
 def search_contacts(args, book: AddressBook):
     if len(args) < 1:
         return "Usage: search <keyword>"
-    results = book.search(args[0])
-    if not results:
-        return "No contacts found."
-    return "\n".join(str(r) for r in results)
+    ui.show_contacts_table(book.search(args[0]))
 
 
 @contact_command("add-birthday")
@@ -141,7 +139,7 @@ def register_collection_commands():
     - remove-{entity}: Remove item from collection
     - show-{entity}: Display all items in collection
     """
-    from models import Record
+    from ..models import Record
     
     _SINGULAR = {"phones": "phone", "emails": "email", "addresses": "address"}
 

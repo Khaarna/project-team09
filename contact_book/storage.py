@@ -2,7 +2,7 @@ import os
 import hashlib
 import pickle
 
-from models import AddressBook, NotesBook
+from .models import AddressBook, NotesBook
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 DATA_FILE = os.path.join(_DATA_DIR, "data.pkl")

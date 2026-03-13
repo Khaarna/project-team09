@@ -25,4 +25,4 @@ def dispatch_command(command: str, args: list[str], ctx) -> str:
         return CONTACT_COMMANDS[command](args, ctx.book)
     if command in NOTE_COMMANDS:
         return NOTE_COMMANDS[command](args, ctx.notes)
-    return f"Unknown command '{command}'. Type 'help' to see available commands."
+    return f"Error: Unknown command '{command}'. Type 'help' to see available commands."

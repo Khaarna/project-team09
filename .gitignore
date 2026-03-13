@@ -6,6 +6,9 @@ __pycache__/
 # Application data
 data/
 
+# VSCode local settings
+.vscode/settings.json
+
 # C extensions
 *.so
 
