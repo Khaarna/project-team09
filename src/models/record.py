@@ -1,5 +1,34 @@
 from datetime import timedelta
-from .fields import Name, Phone, Email, Address, Birthday, CRUDMixin
+from .fields import Name, Phone, Email, Address, Birthday
+
+
+class CRUDMixin:
+    """Mixin providing generic CRUD operations for value object collections."""
+
+    def _make_item(self, cls, value):
+        item = cls(value) if not isinstance(value, cls) else value
+        return item.value, item
+
+    def _add_item(self, collection: dict, cls, value):
+        key, item = self._make_item(cls, value)
+        if key in collection:
+            raise ValueError(f"{cls.__name__} already exists.")
+        collection[key] = item
+        return item
+
+    def _find_item(self, collection: dict, cls, value):
+        key = value.value if isinstance(value, cls) else cls.normalize(value)
+        return collection.get(key)
+
+    def _remove_item(self, collection: dict, cls, value):
+        key = value.value if isinstance(value, cls) else cls.normalize(value)
+        if key not in collection:
+            raise ValueError(f"{cls.__name__} not found.")
+        del collection[key]
+
+    def _change_item(self, collection: dict, cls, old_value, new_value):
+        self._remove_item(collection, cls, old_value)
+        return self._add_item(collection, cls, new_value)
 
 
 class Record(CRUDMixin):
@@ -15,9 +44,8 @@ class Record(CRUDMixin):
         if not isinstance(name, Name):
             raise TypeError("Expected Name instance.")
         self.name = name
-        self._phones: dict[str, Phone] = {}
-        self._emails: dict[str, Email] = {}
-        self._addresses: dict[str, Address] = {}
+        for field in self.COLLECTIONS:
+            setattr(self, f"_{field}", {})
         self._birthday: Birthday | None = None
 
     @property

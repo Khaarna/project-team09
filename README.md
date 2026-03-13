@@ -7,7 +7,7 @@ A CLI application for managing contacts and notes, built with Python.
 - **Contacts** — store names, multiple phones, emails, addresses and a birthday per contact
 - **Notes** — create and manage text notes with tags
 - **Upcoming birthdays** — list contacts with birthdays in the next N days
-- **Persistent storage** — data is saved automatically on exit with SHA-256 integrity check
+- **Persistent storage** — data is saved automatically after every command with SHA-256 integrity check
 
 ## Requirements
 
@@ -54,8 +54,8 @@ py main.py
 
 | Command | Description |
 |---|---|
-| `add-address <name> <addr...>` | Add address to contact (multi-word supported) |
-| `change-address <name> <#> <addr...>` | Change address by index |
+| `add-address <name> <address>` | Add address to contact (multi-word supported) |
+| `change-address <name> <#> <address>` | Change address by index |
 | `remove-address <name> <#>` | Remove address by index |
 | `show-addresses <name>` | Show all addresses (numbered) |
 
@@ -64,6 +64,8 @@ py main.py
 | Command | Description |
 |---|---|
 | `add-birthday <name> <DD.MM.YYYY>` | Add birthday |
+| `change-birthday <name> <DD.MM.YYYY>` | Change birthday |
+| `remove-birthday <name>` | Remove birthday |
 | `show-birthday <name>` | Show birthday |
 | `birthdays [days]` | Show upcoming birthdays (default: 7 days) |
 
@@ -80,6 +82,7 @@ py main.py
 | `add-tag <title> <tag>` | Add tag to note |
 | `remove-tag <title> <tag>` | Remove tag from note |
 | `search-tag <tag>` | Search notes by tag |
+| `sort-by-tag` | Show all notes sorted by tag |
 
 ### Other
 
@@ -115,15 +118,15 @@ Field
 └── Birthday   — DD.MM.YYYY → date, with next_birthday() leap-year handling
 ```
 
-### CRUDMixin (`fields.py`)
+### CRUDMixin (`record.py`)
 
-Generic dict-based CRUD operations used by `Record` for all multi-value collections. Uses the field's `.value` as the dict key, giving O(1) lookups and automatic duplicate prevention.
+Generic dict-based CRUD operations defined in `record.py` and inherited by `Record` for all multi-value collections. Uses the field's `.value` as the dict key, giving O(1) lookups and automatic duplicate prevention. Key lookups use `cls.normalize(value)` — no throwaway object construction.
 
 ```python
 class CRUDMixin:
     def _add_item(collection, cls, value): ...
-    def _find_item(collection, cls, value): ...
-    def _remove_item(collection, cls, value): ...
+    def _find_item(collection, cls, value): ...  # uses cls.normalize()
+    def _remove_item(collection, cls, value): ... # uses cls.normalize()
     def _change_item(collection, cls, old, new): ...
 ```
 
@@ -156,28 +159,37 @@ Rather than writing handlers for each field by hand, `register_collection_comman
 
 Change and remove commands accept a **1-based index** instead of requiring the user to retype the existing value. The handler resolves the index to the actual stored value before calling the model.
 
+Each `Field` subclass also exposes a `normalize(value)` classmethod that converts raw input to its canonical key form without running full validation — used by `CRUDMixin` for O(1) lookups without constructing throwaway objects.
+
 ### Command Dispatcher (`dispatcher.py`)
 
 Two independent registries (`CONTACT_COMMANDS`, `NOTE_COMMANDS`) populated by `@contact_command` / `@note_command` decorators. `dispatch_command()` checks both and returns a standard error message for unknown commands.
 
-### Storage (`storage.py`)
+### AppContext and Storage (`storage.py`)
 
-Data is pickled to `data/` with a SHA-256 hash stored alongside. On load the hash is verified; a mismatch raises rather than silently loading corrupt data.
+`AppContext` owns the application state (`book`, `notes`) and encapsulates all persistence logic:
+
+```python
+ctx = AppContext.load()   # deserialize from disk, verify SHA-256 hash
+ctx.save()                # atomic write (tmp + os.replace) + update hash
+```
+
+Data is pickled to `data/` with a SHA-256 hash stored alongside. On load the hash is verified; a mismatch discards the file and starts fresh. Saves happen after every command, so a crash never loses more than one operation.
 
 ## Project Structure
 
 ```
 src/
 ├── main.py               # Entry point, CLI loop, help text
-├── storage.py            # Pickle save/load with SHA-256 integrity check
+├── storage.py            # AppContext: pickle persistence + SHA-256 integrity
 ├── models/
-│   ├── fields.py         # Value objects + CRUDMixin
-│   ├── record.py         # Contact aggregate root (uses CRUDMixin)
+│   ├── fields.py         # Value objects (Field subclasses + normalize())
+│   ├── record.py         # CRUDMixin + Record aggregate root
 │   ├── address_book.py   # AddressBook collection + search
 │   ├── note.py           # Note entity
-│   └── notes_book.py     # NotesBook collection
+│   └── notes_book.py     # NotesBook collection + sort_by_tag
 └── handlers/
-    ├── dispatcher.py     # Command registries and dispatch
+    ├── dispatcher.py     # Command registries and dispatch (AppContext-aware)
     ├── decorators.py     # @input_error decorator
     ├── contact_handlers.py  # Contact commands + dynamic registration
     └── note_handlers.py     # Note commands

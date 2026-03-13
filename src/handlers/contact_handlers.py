@@ -9,7 +9,7 @@ def add_contact(args, book: AddressBook):
     if len(args) < 1:
         return "Usage: add <name>"
     name = args[0]
-    book.get_or_create_record(name)
+    book.create_record(name)
     return "Contact added."
 
 
@@ -63,6 +63,32 @@ def add_birthday(args, book: AddressBook):
         raise ValueError(f"Contact '{name}' not found.")
     record.add_birthday(birthday)
     return "Birthday added."
+
+
+@contact_command("change-birthday")
+@input_error
+def change_birthday(args, book: AddressBook):
+    if len(args) < 2:
+        return "Usage: change-birthday <name> <DD.MM.YYYY>"
+    name, birthday = args[0], args[1]
+    record = book.find(name)
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
+    record.change_birthday(birthday)
+    return "Birthday updated."
+
+
+@contact_command("remove-birthday")
+@input_error
+def remove_birthday(args, book: AddressBook):
+    if len(args) < 1:
+        return "Usage: remove-birthday <name>"
+    name = args[0]
+    record = book.find(name)
+    if not record:
+        raise ValueError(f"Contact '{name}' not found.")
+    record.remove_birthday()
+    return "Birthday removed."
 
 
 @contact_command("show-birthday")

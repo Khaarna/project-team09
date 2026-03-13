@@ -49,6 +49,12 @@ class NotesBook:
             if any(needle == note_tag.value.lower() for note_tag in note.tags)
         ]
 
+    def sort_by_tag(self) -> list[Note]:
+        def sort_key(note: Note):
+            tags = sorted(t.value for t in note.tags)
+            return (len(tags) == 0, tags)
+        return sorted(self._notes.values(), key=sort_key)
+
     def add_tag(self, title: str, tag: str) -> None:
         self.find(title).add_tag(tag)
 

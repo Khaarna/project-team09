@@ -12,11 +12,23 @@ class AddressBook:
         return tuple(self._records.values())
 
     def get_or_create_record(self, name: str) -> Record:
+        """Find a record by name, creating it if it does not exist.
+        Used by add-phone/email/address to auto-create contacts on the fly.
+        """
         key = name.lower()
         record = self._records.get(key)
         if record is None:
             record = Record(Name(name))
             self._records[key] = record
+        return record
+
+    def create_record(self, name: str) -> Record:
+        """Create a new record. Raises ValueError if the contact already exists."""
+        key = name.lower()
+        if key in self._records:
+            raise ValueError(f"Contact '{name}' already exists.")
+        record = Record(Name(name))
+        self._records[key] = record
         return record
 
     def find(self, name: str) -> Record | None:
