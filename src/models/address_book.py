@@ -37,6 +37,7 @@ class AddressBook:
             if term in record.name.value.lower()
             or any(term in p.value for p in record.phones)
             or any(term in e.value.lower() for e in record.emails)
+            or any(term in a.value.lower() for a in record.addresses)
         ]
 
     def get_upcoming_birthdays(self, days: int = 7) -> list[dict]:

@@ -8,6 +8,7 @@ class Record(CRUDMixin):
     COLLECTIONS = {
         "phones": Phone,
         "emails": Email,
+        "addresses": Address,
     }
     
     def __init__(self, name: Name):
@@ -16,8 +17,8 @@ class Record(CRUDMixin):
         self.name = name
         self._phones: dict[str, Phone] = {}
         self._emails: dict[str, Email] = {}
+        self._addresses: dict[str, Address] = {}
         self._birthday: Birthday | None = None
-        self.address: Address | None = None
 
     @property
     def phones(self):
@@ -26,7 +27,11 @@ class Record(CRUDMixin):
     @property
     def emails(self):
         return tuple(self._emails.values())
-    
+
+    @property
+    def addresses(self):
+        return tuple(self._addresses.values())
+
     @property
     def birthday(self):
         return self._birthday
@@ -103,11 +108,6 @@ class Record(CRUDMixin):
             birthday_date += timedelta(days=1)
         return birthday_date
 
-    # --- Address ---
-
-    def add_address(self, address) -> None:
-        pass  # TODO
-
     # --- Display ---
 
     def __str__(self):
@@ -124,9 +124,5 @@ class Record(CRUDMixin):
         # Add birthday if set
         if self.birthday:
             parts.append(f"Birthday: {self.birthday}")
-
-        # Add address if set
-        if self.address:
-            parts.append(f"Address: {self.address}")
 
         return "; ".join(parts)
