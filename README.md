@@ -246,6 +246,16 @@ contact_book/
     └── note_handlers.py     # Note commands
 ```
 
+## Testing
+
+All tests live in a single file, `tests.py`, at the project root:
+
+```bash
+python tests.py
+```
+
+No extra dependencies required — the test runner is built-in. Each test group prints its individual checks and the run exits with code `0` on success or `1` on failure.
+
 ## Data
 
 Contact and notes data is stored in `data/` at the project root (git-ignored). The folder is created automatically on first save.
