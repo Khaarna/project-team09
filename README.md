@@ -9,10 +9,12 @@ A CLI application for managing contacts and notes, built with Python and [rich](
 - **Upcoming birthdays** — list contacts with birthdays in the next N days
 - **Persistent storage** — data is saved automatically after every command with SHA-256 integrity check
 - **Rich terminal UI** — tables, panels and colour-coded output via the `rich` library
+- **Tab completion** — command names and contact/note names complete on TAB via `prompt_toolkit`
 
 ## Requirements
 
 - Python 3.10+
+- Dependencies: `rich>=13.0`, `prompt_toolkit>=3.0` (installed automatically)
 
 ## Installation
 
@@ -32,7 +34,7 @@ Install the package:
 pip install .
 ```
 
-This installs all dependencies (`rich`) and registers the `contact-book` command.
+This installs all dependencies (`rich`, `prompt_toolkit`) and registers the `contact-book` command.
 
 ## Running
 
@@ -198,6 +200,15 @@ All terminal output goes through `ui.py`, which uses `rich` for visual rendering
 
 Handlers call `ui.show_contact()` / `ui.show_notes()` etc. directly and return `None`; plain-string-returning handlers are rendered by `ui.print_result()` from the main loop.
 
+### Tab Completion (`completion.py`)
+
+`ContactBookCompleter` (a `prompt_toolkit.Completer`) provides context-aware TAB completion:
+
+- **Word 1** — completes all registered command names (built once, cached)
+- **Word 2** — completes contact names for commands like `info`, `delete`, `add-phone`, etc., or note titles for `note`, `edit-note`, `add-tag`, etc.
+
+The completer holds a live reference to `AppContext`, so newly added contacts and notes are immediately available as completions without any cache invalidation.
+
 ### Command Dispatcher (`dispatcher.py`)
 
 Two independent registries (`CONTACT_COMMANDS`, `NOTE_COMMANDS`) populated by `@contact_command` / `@note_command` decorators. `dispatch_command()` checks both and returns a standard error message for unknown commands.
@@ -221,6 +232,7 @@ contact_book/
 ├── __main__.py           # Entry point (python -m contact_book / contact-book)
 ├── storage.py            # AppContext: pickle persistence + SHA-256 integrity
 ├── ui.py                 # Rich-based terminal rendering
+├── completion.py         # TAB completion via prompt_toolkit
 ├── models/
 │   ├── fields.py         # Value objects (Field subclasses)
 │   ├── record.py         # CRUDMixin + Record aggregate root

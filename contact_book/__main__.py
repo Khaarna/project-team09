@@ -1,5 +1,6 @@
 from .storage import AppContext
 from .handlers import dispatch_command
+from .completion import ContactBookCompleter
 from . import ui
 
 
@@ -12,10 +13,11 @@ def parse_input(user_input: str) -> tuple[str, list[str]]:
 
 def main():
     ctx = AppContext.load()
+    completer = ContactBookCompleter(ctx)
     ui.print_welcome()
 
     while True:
-        user_input = ui.ask()
+        user_input = ui.ask(completer)
         command, args = parse_input(user_input)
 
         if not command:
