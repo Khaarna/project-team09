@@ -6,6 +6,9 @@ remain decoupled from presentation concerns.  Handlers continue to return
 plain strings (good for testing); this module handles the visual layer.
 """
 
+from prompt_toolkit import prompt as _pt_prompt
+from prompt_toolkit.formatted_text import HTML as _HTML
+from prompt_toolkit.styles import Style as _Style
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -111,8 +114,22 @@ def print_help() -> None:
 # Generic output
 # ---------------------------------------------------------------------------
 
-def ask() -> str:
-    """Display the command prompt and return the raw user input."""
+_PROMPT_STYLE = _Style.from_dict({"prompt": "bold ansicyan"})
+
+
+def ask(completer=None) -> str:
+    """Display the command prompt and return the raw user input.
+
+    When *completer* is provided, uses prompt_toolkit for TAB completion.
+    Falls back to plain rich console.input() (useful in tests).
+    """
+    if completer is not None:
+        return _pt_prompt(
+            _HTML("\n<prompt>></prompt> "),
+            completer=completer,
+            complete_while_typing=False,
+            style=_PROMPT_STYLE,
+        )
     return console.input("\n[bold cyan]>[/bold cyan] ")
 
 
